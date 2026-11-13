@@ -1,0 +1,1066 @@
+{
+  "name": "Founder Scout",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        160
+      ],
+      "id": "659cfdc0-1631-4e1f-a645-a8412b29e8ed",
+      "name": "Run manually"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        480,
+        64
+      ],
+      "id": "87fd3d46-d907-471b-8272-a1a754513b5f",
+      "name": "GetKnownCompanies",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.company }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Website|rich_text",
+              "textContent": "={{ String($json.website || '') }}"
+            },
+            {
+              "key": "Stage|select",
+              "selectValue": "={{ $json.stage || 'Other' }}"
+            },
+            {
+              "key": "Amount EUR|rich_text",
+              "textContent": "={{ $json.amount_eur ? String($json.amount_eur) : '' }}"
+            },
+            {
+              "key": "Round date|date",
+              "includeTime": false,
+              "date": "={{ $json.round_date }}"
+            },
+            {
+              "key": "Round status|select",
+              "selectValue": "=New company"
+            },
+            {
+              "key": "Role|rich_text",
+              "textContent": "={{ String($json.role || '') }}"
+            },
+            {
+              "key": "LinkedIn|rich_text",
+              "textContent": "={{ String($json.linkedin_url || '') }}"
+            },
+            {
+              "key": "Source URLs|rich_text",
+              "textContent": "={{ [...new Set([$json.person_source, $json.website].filter(Boolean))].join(' ; ') }}"
+            },
+            {
+              "key": "Notes|rich_text",
+              "textContent": "={{ $json.check_note || $json.status || 'No website found' }}{{ $json.evidence ? ' | Evidence: ' + $json.evidence : '' }} | Stage: {{ $json.stage_note }}"
+            },
+            {
+              "key": "Person|rich_text",
+              "textContent": "={{ String($json.person_name || '') }}"
+            },
+            {
+              "key": "Date found|date",
+              "includeTime": false,
+              "date": "={{ $now.format('yyyy-MM-dd') }}"
+            },
+            {
+              "key": "Data status|rich_text",
+              "textContent": "={{ $json.linkedin_url ? 'complete' : 'partial' }}"
+            },
+            {
+              "key": "Verified|rich_text",
+              "textContent": "={{ $json.verified || 'Unverified' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        4192,
+        160
+      ],
+      "id": "6feb6dd9-a8c1-4404-b014-a8ce79fc0743",
+      "name": "SaveFounder"
+    },
+    {
+      "parameters": {
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "name",
+              "field2": "company.name"
+            }
+          ]
+        },
+        "resolve": "preferInput2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.compareDatasets",
+      "typeVersion": 2.3,
+      "position": [
+        704,
+        128
+      ],
+      "id": "b2f5541c-ddc5-457f-bc9e-84f87ec555a9",
+      "name": "Compare Datasets"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eac67c78-0366-48c5-bcc3-77db81d95caf",
+              "leftValue": "={{ ['Pre-Seed','Seed','Series A'].includes($json.stage) || ($json.stage === 'Other' && ($json.amount_eur === null || $json.amount_eur <= 15000000)) }}",
+              "rightValue": "Other",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1152,
+        160
+      ],
+      "id": "c7154e85-b7d5-426c-a514-4da5c36d2011",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        160
+      ],
+      "id": "9b466c18-d2b1-43dc-a5fd-ca0d436ad238",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "url": "=https://funding.tech.eu/api/v1/rounds?country=Germany&limit=100&from={{ $now.minus({ days: 90 }).toFormat('yyyy-MM-dd') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        256,
+        256
+      ],
+      "id": "73d3f35b-0400-4604-ab99-570fa60c8ba8",
+      "name": "GetStartups",
+      "executeOnce": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "96ab7307-2831-4279-a0d9-db7d577703ef",
+              "name": "company",
+              "value": "={{ $json.company.name }}",
+              "type": "string"
+            },
+            {
+              "id": "6891193f-7b99-4be3-a0b6-eab3d73a96c6",
+              "name": "city",
+              "value": "={{ $json.company.city }}",
+              "type": "string"
+            },
+            {
+              "id": "e20781cc-99e3-466e-a28d-69212a986724",
+              "name": "country",
+              "value": "={{ $json.company.country }}",
+              "type": "string"
+            },
+            {
+              "id": "f40f2393-9ce9-4082-9c2c-9120a7013fc0",
+              "name": "founded",
+              "value": "={{ $json.company.founded }}",
+              "type": "string"
+            },
+            {
+              "id": "212b07cd-4874-4620-a039-95a657ecbf14",
+              "name": "stage",
+              "value": "={{ $json.stage }}",
+              "type": "string"
+            },
+            {
+              "id": "787f8cf8-bc9d-4a9a-a430-10b42f79e749",
+              "name": "round_type",
+              "value": "={{ $json.rawRoundType }}",
+              "type": "string"
+            },
+            {
+              "id": "385a568f-cf06-48be-a8ff-cd95ebc8d3a3",
+              "name": "amount_eur",
+              "value": "={{ $json.amountEur }}",
+              "type": "number"
+            },
+            {
+              "id": "73f5d7af-1e7d-45ca-b42b-3e07e264dada",
+              "name": "round_date",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            },
+            {
+              "id": "55e80e32-94d0-4dbd-b3c8-1b39174f2e0a",
+              "name": "techeu_page",
+              "value": "={{ $json.company.pageUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "738963b8-bae8-4ea3-ae3a-dae9642e0f9c",
+              "name": "investors",
+              "value": "={{ ($json.investors || []).slice(0,3).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "7e693e28-9433-42f3-b384-fdcc9427fc38",
+              "name": "sectors",
+              "value": "={{ ($json.company.sectors || []).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "aaf059db-6e89-40e8-acdf-bda75481fc24",
+              "name": "stage_note",
+              "value": "={{ $json.stage !== 'Other' ? $json.stage : ($json.amountEur ? 'Other (amount fits early stage)' : 'Unknown – check by hand') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        928,
+        160
+      ],
+      "id": "82027156-edea-4a8d-9523-9f6bc90ee72f",
+      "name": "CleanFields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        256
+      ],
+      "id": "59a779c8-3a8f-4e92-ba74-fdb7376fa58a",
+      "name": "SplitRounds"
+    },
+    {
+      "parameters": {
+        "query": "={{ $json.company }} {{ $json.city }} startup official website",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        160
+      ],
+      "id": "ea9adac5-1efc-4072-90e1-683a2be02ed6",
+      "name": "FindWebsite"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pick the official website for each company from the Tavily results.\n// Only accepts a domain that contains the company name, so nothing is guessed.\nconst base = $('Limit').item.json;\nconst company = (base.company || '').toLowerCase();\nconst slug = company.replace(/[^a-z0-9]/g, '');\nconst firstWord = company.split(/[^a-z0-9]+/).find(w => w.length >= 4) || slug;\nconst results = $input.item.json.results || [];\n\nconst matches = (host) => {\n  const h = host.toLowerCase().replace(/^www\\./, '');\n  const label = h.split('.')[0].replace(/[^a-z0-9]/g, '');\n  const whole = h.replace(/[^a-z0-9]/g, '');\n  const nameInHost = whole.includes(slug) || label.includes(firstWord);\n  const notTooLong = label.length <= slug.length + 6; // rejects e.g. 'sparxityconsulting'\n  return nameInHost && notTooLong;\n};\n\nlet website = '';\nlet websiteSource = 'not found';\nlet foundedYear = base.founded || '';\n\n// 1) Company profile pages often state \"Website: www.example.com\" and \"Founded: 2024\"\nfor (const r of results) {\n  const text = r.content || '';\n  const site = text.match(/Website:\\s*(?:https?:\\/\\/)?(?:www\\.)?([a-z0-9-]+(?:\\.[a-z0-9-]+)+)/i);\n  if (site && matches(site[1])) {\n    website = 'https://' + site[1].toLowerCase();\n    websiteSource = 'company profile';\n    const founded = text.match(/Founded:\\s*(\\d{4})/i);\n    if (founded && !foundedYear) foundedYear = founded[1];\n    break;\n  }\n}\n\n// 2) Otherwise: a search result whose own domain matches the company name\nif (!website) {\n  for (const r of results) {\n    let host = '';\n    try { host = new URL(r.url).hostname; } catch (e) { continue; }\n    if (matches(host)) {\n      website = 'https://' + host.toLowerCase().replace(/^www\\./, '');\n      websiteSource = 'search result domain';\n      break;\n    }\n  }\n}\n\n// 3) Use the founding year to settle unknown stages\nlet stageNote = base.stage_note;\nif (stageNote === 'Unknown – check by hand' && foundedYear) {\n  stageNote = Number(foundedYear) >= 2021\n    ? 'Other (founded ' + foundedYear + ', likely early stage)'\n    : 'Other (founded ' + foundedYear + ', likely later stage – check)';\n}\n\nreturn {\n  json: {\n    ...base,\n    founded: foundedYear,\n    stage_note: stageNote,\n    website,\n    website_source: websiteSource,\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        160
+      ],
+      "id": "8093d29e-3cc2-4043-9f19-1d13c49cb6e9",
+      "name": "PickWebsite"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9e218a07-ff1f-4513-aa3f-db2f00487293",
+              "leftValue": "={{ $json.website }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2048,
+        160
+      ],
+      "id": "bbe15259-6c9a-45b7-91f1-a25c96d0d909",
+      "name": "HasWebsite"
+    },
+    {
+      "parameters": {
+        "query": "impressum geschäftsführer imprint managing director",
+        "options": {
+          "include_domains": [
+            "={{ $json.website.replace('https://','') }}"
+          ],
+          "include_raw_content": true,
+          "max_results": 3
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 2.1,
+      "position": [
+        2272,
+        160
+      ],
+      "id": "fc061055-168d-42e2-a8f7-b0f10fa15e74",
+      "name": "SearchImpressum"
+    },
+    {
+      "parameters": {
+        "query": "={{ $('PickWebsite').item.json.company }} {{ $('PickWebsite').item.json.city }} founders funding {{ ($('PickWebsite').item.json.investors || '').split(',')[0] }}",
+        "options": {
+          "exclude_domains": [
+            "linkedin.com",
+            "youtube.com"
+          ],
+          "include_raw_content": true,
+          "max_results": 4
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 2.1,
+      "position": [
+        2496,
+        160
+      ],
+      "id": "bbd1513a-d884-4cf3-a1e3-bf697a187806",
+      "name": "SearchNews"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Combine Impressum + news text into one block for the AI to read.\nconst base = $('PickWebsite').item.json;\nconst impressum = $('SearchImpressum').item.json.results || [];\nconst news = $input.item.json.results || [];\n\nconst format = (list, label) =>\n  list.map(r => `[${label}] ${r.url}\\n${(r.raw_content || r.content || '').slice(0, 2500)}`).join('\\n\\n---\\n\\n');\n\nconst researchText = (format(impressum, 'IMPRESSUM') + '\\n\\n---\\n\\n' + format(news, 'NEWS')).slice(0, 9000);\nconst sources = [...impressum, ...news].map(r => r.url);\n\nreturn {\n  json: {\n    ...base,\n    research_text: researchText,\n    research_sources: sources.join(' ; '),\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        160
+      ],
+      "id": "615fad4b-c10a-4dd2-9b58-9aa1b78df5ac",
+      "name": "CollectResearch"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3.5-super-vl:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2952,
+        392
+      ],
+      "id": "24049917-f824-44ef-b85c-97650ef41bc1",
+      "name": "AI model (OpenRouter)"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"people\": [\n    {\n      \"name\": \"Anna Beispiel\",\n      \"role\": \"Co-founder & CEO\",\n      \"source_url\": \"https://example.com/impressum\",\n      \"evidence\": \"Geschäftsführer: Anna Beispiel\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3080,
+        392
+      ],
+      "id": "fc28e3ba-93b7-4f98-b5cf-310522b44293",
+      "name": "Founder list format"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Company: {{ $json.company }}\nWebsite: {{ $json.website }}\n\nTEXT:\n{{ $json.research_text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You extract people from the TEXT only. Never use outside knowledge and never guess.\n\nList only people the TEXT explicitly names as founder, co-founder, CEO, or managing director (Geschäftsführer/Geschäftsführerin) of the company given. Ignore investors, advisors, employees, journalists and people at other companies.\n\nFor each person return:\n- name: exactly as written in the TEXT\n- role: as written (translate Geschäftsführer/Geschäftsführerin to \"Managing Director\")\n- source_url: the URL of the block where the name appears\n- evidence: the exact words from the TEXT that show the role (max 15 words)\n\nIf the TEXT names nobody, return an empty list. An empty list is a correct answer."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2944,
+        160
+      ],
+      "id": "f81f4985-bf10-4ebc-a425-aa7c45dd7206",
+      "name": "ExtractFounder",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per founder, with the company data attached. Duplicate names are removed.\nconst bases = $('CollectResearch').all();\nconst out = [];\n\n$input.all().forEach((item, i) => {\n  const base = { ...bases[i].json };\n  delete base.research_text;\n  const people = (item.json.output && item.json.output.people) || [];\n  const seen = new Set();\n\n  for (const p of people) {\n    const name = (p.name || '').trim();\n    const key = name.toLowerCase().replace(/\\s+/g, ' ');\n    if (!name || seen.has(key)) continue;\n    seen.add(key);\n    out.push({ json: { ...base, person_name: name, role: p.role || '', person_source: p.source_url || '', evidence: p.evidence || '', status: 'Founder found' } });\n  }\n\n  if (seen.size === 0) {\n    out.push({ json: { ...base, person_name: '', role: '', person_source: '', evidence: '', status: 'No founder found in Impressum or news' } });\n  }\n});\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        160
+      ],
+      "id": "89e99e12-e3c4-4e3e-8d9d-45e63af6bdef",
+      "name": "OneRowPerPerson"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a967d5b-fc84-47b4-a154-e588edc0dbfb",
+              "leftValue": "={{ $json.person_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3520,
+        160
+      ],
+      "id": "d0da924e-a8ac-4ce1-a062-983d5f583849",
+      "name": "HasPerson"
+    },
+    {
+      "parameters": {
+        "query": "={{ $json.person_name.replace(/^(Dr\\.|Prof\\.)\\s*/i, '') }} {{ $json.company }} LinkedIn",
+        "options": {
+          "max_results": 5,
+          "include_domains": [
+            "linkedin.com"
+          ]
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavily",
+      "typeVersion": 2.1,
+      "position": [
+        3744,
+        160
+      ],
+      "id": "c4b902af-b6f7-4bde-b0a2-589ff3c3a6d7",
+      "name": "SearchLinkedIn"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Pick a LinkedIn profile only from real search results and check it with fixed rules.\n// Verified = name + company + founder/CEO role all match, and no second profile fits equally well.\nconst base = $('HasPerson').item.json;\nconst results = $input.item.json.results || [];\n\nconst norm = (s) => (s || '').toLowerCase()\n  .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n\nconst nameTokens = norm(base.person_name)\n  .replace(/\\b(dr|prof|med|rer|nat|phil|ing)\\b\\.?/g, ' ')\n  .split(/[^a-z]+/).filter(t => t.length >= 2);\nconst first = nameTokens[0] || '';\nconst last = nameTokens[nameTokens.length - 1] || '';\nconst companyTokens = norm(base.company).split(/[^a-z0-9]+/).filter(t => t.length >= 3);\nconst domainCore = norm((base.website || '').replace(/^https?:\\/\\//, '').split('/')[0]).split('.')[0];\nconst roleWords = /(founder|co-founder|cofounder|ceo|managing director|geschaeftsfuehrer|gruender|chief executive)/;\n\nconst candidates = [];\nfor (const r of results) {\n  const m = (r.url || '').match(/linkedin\\.com\\/in\\/([^/?#]+)/i);\n  if (!m) continue; // only profile URLs – never posts or company pages\n  let handle = m[1];\n  try { handle = decodeURIComponent(handle); } catch (e) {}\n  const url = 'https://www.linkedin.com/in/' + handle + '/';\n  const text = norm((r.title || '') + ' ' + (r.content || ''));\n  const slug = norm(decodeURIComponent(m[1]));\n  const nameOk = first && last\n    && (text.includes(first) || slug.includes(first))\n    && (text.includes(last) || slug.includes(last));\n  if (!nameOk) continue;\n  const companyOk = companyTokens.some(t => text.includes(t)) || (domainCore.length >= 3 && text.includes(domainCore));\n  const roleOk = roleWords.test(text);\n  if (!candidates.some(c => c.url === url)) {\n    candidates.push({ url, score: (companyOk ? 2 : 0) + (roleOk ? 1 : 0), companyOk, roleOk });\n  }\n}\ncandidates.sort((a, b) => b.score - a.score);\n\nlet linkedin = '';\nlet verified = 'Unverified';\nlet note = '';\n\nif (candidates.length === 0) {\n  note = 'No LinkedIn profile with this name found in search results.';\n} else {\n  const best = candidates[0];\n  const ties = candidates.filter(c => c.score === best.score && c.url !== best.url);\n  linkedin = best.url;\n  if (ties.length > 0) {\n    note = 'Several profiles fit this name: ' + [best.url, ...ties.map(t => t.url)].join(' , ');\n  } else if (best.companyOk && best.roleOk) {\n    verified = 'Verified';\n    note = 'Name, company and founder/CEO role all match the LinkedIn result.';\n  } else {\n    note = 'Name matches' + (best.companyOk ? ', company matches' : ', company not confirmed')\n      + (best.roleOk ? ', role matches' : ', role not confirmed') + '.';\n  }\n}\n\nreturn { json: { ...base, linkedin_url: linkedin, verified, check_note: note } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3968,
+        160
+      ],
+      "id": "40a269dc-2f68-4ccc-a82c-d67354d3c03a",
+      "name": "VerifyLinkedIn"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.company }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Amount EUR|rich_text",
+              "textContent": "={{ $json.amount_eur ? String($json.amount_eur) : '' }}"
+            },
+            {
+              "key": "Data status|rich_text",
+              "textContent": "partial"
+            },
+            {
+              "key": "Stage|select",
+              "selectValue": "={{ $json.stage || 'Other' }}"
+            },
+            {
+              "key": "Round date|date",
+              "date": "={{ $json.round_date }}",
+              "includeTime": false
+            },
+            {
+              "key": "Round status|select",
+              "selectValue": "New company"
+            },
+            {
+              "key": "Verified|rich_text",
+              "textContent": "Unverified"
+            },
+            {
+              "key": "Source URLs|rich_text",
+              "textContent": "={{ String($json.techeu_page || '') }}"
+            },
+            {
+              "key": "Notes|rich_text",
+              "textContent": "=No website found – research by hand | City: {{ $json.city }} | Investors: {{ $json.investors }} | Stage: {{ $json.stage_note }}"
+            },
+            {
+              "key": "Date found|date",
+              "date": "={{ $now.format('yyyy-MM-dd') }}",
+              "includeTime": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        304
+      ],
+      "id": "db4beee9-27f1-40f8-8ca6-b22c03c38606",
+      "name": "SaveNoWebsite"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "YOUR_NOTION_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.company }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Amount EUR|rich_text",
+              "textContent": "={{ $json.amount_eur ? String($json.amount_eur) : '' }}"
+            },
+            {
+              "key": "Data status|rich_text",
+              "textContent": "partial"
+            },
+            {
+              "key": "Stage|select",
+              "selectValue": "={{ $json.stage || 'Other' }}"
+            },
+            {
+              "key": "Round date|date",
+              "date": "={{ $json.round_date }}",
+              "includeTime": false
+            },
+            {
+              "key": "Round status|select",
+              "selectValue": "New company"
+            },
+            {
+              "key": "Verified|rich_text",
+              "textContent": "Unverified"
+            },
+            {
+              "key": "Source URLs|rich_text",
+              "textContent": "={{ [$json.website, $json.techeu_page].filter(Boolean).join(' ; ') }}"
+            },
+            {
+              "key": "Notes|rich_text",
+              "textContent": "={{ $json.status }} – research by hand | Website: {{ $json.website || '–' }} | City: {{ $json.city }} | Investors: {{ $json.investors }} | Stage: {{ $json.stage_note }}"
+            },
+            {
+              "key": "Date found|date",
+              "date": "={{ $now.format('yyyy-MM-dd') }}",
+              "includeTime": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        3696,
+        304
+      ],
+      "id": "4bb67813-fde1-40f2-9dfd-27e90eda4ab3",
+      "name": "SaveNoFounder"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -640,
+        -40
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "name": "Run daily 07:00"
+    },
+    {
+      "parameters": {
+        "content": "## 1 · GET FUNDING ROUNDS (tech.eu)\nAsks tech.eu for German funding rounds.\n\n**Change in the URL of `GetStartups`:**\n- `days: 90` → how far back to look\n- `country=Germany` → which country\n- `limit=100` → rounds per request (100 is the max)\n\nNeed more than 100 rounds? Turn on **Pagination** (GetStartups → Options → Pagination).\n\n**Keep ON:** Settings → Execute Once",
+        "height": 300,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        420
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000010",
+      "name": "Note 1"
+    },
+    {
+      "parameters": {
+        "content": "## 2 · SKIP KNOWN + KEEP EARLY STAGE\n- `Compare Datasets` → drops companies already in Notion\n- `CleanFields` → simple fields\n- `Filter` → early-stage rounds only\n\n**Change in `Filter`:**\n- `['Pre-Seed','Seed','Series A']` → stages to keep\n- `15000000` → max amount (€) for \"Other\" rounds",
+        "height": 260,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -260
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000011",
+      "name": "Note 2"
+    },
+    {
+      "parameters": {
+        "content": "## 3 · HOW MANY COMPANIES\n`Limit` → Max Items\n- 3 = quick test\n- 20 = normal daily run\n- 100 = everything that passed the filter\n\n≈ 3–5 Tavily searches per company.",
+        "height": 240,
+        "width": 380
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        380
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000012",
+      "name": "Note 3"
+    },
+    {
+      "parameters": {
+        "content": "## 4 · FIND THE REAL WEBSITE\n- `FindWebsite` → searches for the official site\n- `PickWebsite` → accepts only a domain that contains the company name\n- `HasWebsite` → no website? → saved as \"research by hand\"\n\n**Change:** early-stage founding year → `PickWebsite` → `>= 2021`",
+        "height": 240,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        -260
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000013",
+      "name": "Note 4"
+    },
+    {
+      "parameters": {
+        "content": "## 5 · FIND FOUNDER NAMES\n- `SearchImpressum` → the company's legal page (German law: must name the managing directors)\n- `SearchNews` → funding articles\n- `ExtractFounder` → AI pulls names ONLY from that text\n\n**Change:** articles read → `SearchNews` → Max Results · rules → `ExtractFounder` → System Message",
+        "height": 260,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        440
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000014",
+      "name": "Note 5"
+    },
+    {
+      "parameters": {
+        "content": "## 6 · LINKEDIN + VERIFY + SAVE\n- `SearchLinkedIn` → linkedin.com only\n- `VerifyLinkedIn` → fixed rules, no AI:\n  ✅ Verified = name + company + founder/CEO role match\n  ⚠️ Unverified = something missing, or 2 profiles fit\n\n**Change:** role words → `VerifyLinkedIn` → `const roleWords`",
+        "height": 260,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3500,
+        -300
+      ],
+      "id": "a1b2c3d4-0000-4000-8000-000000000015",
+      "name": "Note 6"
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "GetStartups",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetKnownCompanies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetKnownCompanies": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Datasets": {
+      "main": [
+        [],
+        [],
+        [],
+        [
+          {
+            "node": "CleanFields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "FindWebsite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetStartups": {
+      "main": [
+        [
+          {
+            "node": "SplitRounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CleanFields": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitRounds": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "FindWebsite": {
+      "main": [
+        [
+          {
+            "node": "PickWebsite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PickWebsite": {
+      "main": [
+        [
+          {
+            "node": "HasWebsite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HasWebsite": {
+      "main": [
+        [
+          {
+            "node": "SearchImpressum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SaveNoWebsite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SearchImpressum": {
+      "main": [
+        [
+          {
+            "node": "SearchNews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SearchNews": {
+      "main": [
+        [
+          {
+            "node": "CollectResearch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CollectResearch": {
+      "main": [
+        [
+          {
+            "node": "ExtractFounder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI model (OpenRouter)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "ExtractFounder",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Founder list format": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "ExtractFounder",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ExtractFounder": {
+      "main": [
+        [
+          {
+            "node": "OneRowPerPerson",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OneRowPerPerson": {
+      "main": [
+        [
+          {
+            "node": "HasPerson",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HasPerson": {
+      "main": [
+        [
+          {
+            "node": "SearchLinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SaveNoFounder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SearchLinkedIn": {
+      "main": [
+        [
+          {
+            "node": "VerifyLinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VerifyLinkedIn": {
+      "main": [
+        [
+          {
+            "node": "SaveFounder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run daily 07:00": {
+      "main": [
+        [
+          {
+            "node": "GetStartups",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetKnownCompanies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {},
+  "tags": []
+}
