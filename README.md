@@ -5,6 +5,7 @@ An n8n workflow that finds German startups that just raised money, identifies th
 [![Watch the 44-second demo](https://img.youtube.com/vi/X-VGw0CgbSk/maxresdefault.jpg)](https://youtu.be/X-VGw0CgbSk)
 
 ▶ **[Watch the 44-second demo on YouTube](https://youtu.be/X-VGw0CgbSk)** — the workflow, a live run, and the results in Notion (founder names blurred for privacy).
+
 ▶ **[Full report with method, results and cost](https://claude.ai/artifact/RZfwdHFW8JVUAzQ7GbwrSz#01bca24e-c390)** — 
 
 ---
